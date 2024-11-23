@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,6 +29,15 @@ func SetJSONContentType(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func GetMovies(w http.ResponseWriter, r *http.Request) {
+	if err := json.NewEncoder(w).Encode(movies); err != nil {
+		log.Printf("Error encoding JSON: %v", err)
+		http.Error(w, "An error occurred while processing your request", http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/movies", GetMovies).Methods("GET")
@@ -35,6 +45,7 @@ func main() {
 	r.HandleFunc("/movies/", CreateMovie).Methods("POST")
 	r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT")
 	r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
+
 	fmt.Println("Starting server on port 8000")
 	if err := http.ListenAndServe(":8000", r); err != nil {
 		log.Fatal(err)
