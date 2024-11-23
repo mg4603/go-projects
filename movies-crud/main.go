@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -35,6 +36,14 @@ func getDummyMovies() map[string]Movie {
 			Director: &Director{FirstName: "John", LastName: "Doe"}},
 		"2": {Id: "2", Isbn: "45455", Title: "Movie Two",
 			Director: &Director{FirstName: "Jane", LastName: "Doe"}},
+	}
+}
+
+func GetMovies(w http.ResponseWriter, r *http.Request) {
+	if err := json.NewEncoder(w).Encode(movies); err != nil {
+		log.Printf("Error encoding JSON: %v", err)
+		http.Error(w, "An error occurred while processing your request", http.StatusInternalServerError)
+		return
 	}
 }
 
