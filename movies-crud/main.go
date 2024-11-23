@@ -20,6 +20,14 @@ type Director struct {
 	LastName  string `json:"last_name"`
 }
 
+var movies = make(map[string]Movie)
+
+func SetJSONContentType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
+}
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/movies", GetMovies).Methods("GET")
