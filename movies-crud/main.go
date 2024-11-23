@@ -25,8 +25,8 @@ var movies = make(map[string]Movie)
 
 func SetJSONContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
+		w.Header().Set("Content-Type", "application/json")
 	})
 }
 
@@ -55,8 +55,8 @@ func main() {
 	// r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT")
 	// r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
 	//
-	// r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
-	//
+	r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
+
 	fmt.Println("Starting server on port 8000")
 	if err := http.ListenAndServe(":8000", r); err != nil {
 		log.Fatal(err)
