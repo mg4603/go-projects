@@ -8,6 +8,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type Director struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/movies", GetMovies).Methods("GET")
