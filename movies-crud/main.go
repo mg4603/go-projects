@@ -46,6 +46,8 @@ func main() {
 	r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT")
 	r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
 
+	r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
+
 	fmt.Println("Starting server on port 8000")
 	if err := http.ListenAndServe(":8000", r); err != nil {
 		log.Fatal(err)
