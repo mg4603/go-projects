@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"github.com/gorilla/mux"
 )
 
 func compareJson(json1, json2 string) (bool, error) {
@@ -104,6 +106,64 @@ func TestSetJSONContentType(t *testing.T) {
 			if got := rec.Header().Get("Content-Type"); got != tt.expectedHeader {
 				t.Errorf("Expected Content-Type %v, but got %v", tt.expectedHeader, got)
 			}
+		})
+	}
+}
+func TestGetMovie(t *testing.T) {
+	tests := []struct {
+		name           string
+		id             string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Valid ID",
+			id:             "1",
+			expectedStatus: http.StatusOK,
+			expectedBody: `{
+							"1":{"id":"1","isbn":"438227","title":"Movie One",
+								"director":{"first_name":"John","last_name":"Doe"}}}`,
+		},
+		{
+			name:           "Non-existent ID",
+			id:             "3",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "404 not found\n",
+		},
+		{
+			name:           "Invalid ID format",
+			id:             "abc",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Bad Request\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			movies = getDummyMovies()
+
+			req := httptest.NewRequest(http.MethodGet, "/movies/"+tt.id, nil)
+			req = mux.SetURLVars(req, map[string]string{"id": tt.id})
+			rec := httptest.NewRecorder()
+
+			handler := SetJSONContentType(http.HandlerFunc(GetMovie))
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rec.Code)
+			}
+
+			if rec.Body.String() != tt.expectedBody {
+				ok, err := compareJson(tt.expectedBody, rec.Body.String())
+				if err != nil {
+					t.Error(err)
+				}
+
+				if !ok {
+					t.Errorf("Expected body %q, got%q", tt.expectedBody, rec.Body.String())
+				}
+			}
+
 		})
 	}
 }
