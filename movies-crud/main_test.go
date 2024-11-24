@@ -217,3 +217,62 @@ func TestRespondInternalServerError(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateMovie(t *testing.T) {
+	tests := []struct {
+		name           string
+		body           string
+		expectedStatus int
+		expectedMovie  *Movie
+	}{
+		{
+			name:           "Valid movie creation",
+			body:           `{"isbn":"12345","title":"Test Movie","director":{"first_name":"John","last_name":"Doe"}}`,
+			expectedStatus: http.StatusOK,
+			expectedMovie: &Movie{
+				Isbn:  "12345",
+				Title: "Test Movie",
+				Director: &Director{
+					FirstName: "John",
+					LastName:  "Doe",
+				},
+			},
+		},
+		{
+			name:           "Invalid json in body",
+			body:           `{"isbn":"12345","title":"Test Movie","director":{`,
+			expectedStatus: http.StatusInternalServerError,
+			expectedMovie:  nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			movies = getDummyMovies()
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/movies", strings.NewReader(tt.body))
+
+			handler := SetJSONContentType(http.HandlerFunc(CreateMovie))
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rec.Code)
+			}
+
+			if tt.expectedMovie != nil {
+				var got Movie
+
+				if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+					t.Fatalf("Failed to decode response body: %v", err)
+				}
+
+				if got.Title != tt.expectedMovie.Title ||
+					got.Isbn != tt.expectedMovie.Isbn ||
+					got.Director.FirstName != tt.expectedMovie.Director.FirstName ||
+					got.Director.LastName != tt.expectedMovie.Director.LastName {
+
+					t.Errorf("Expected movie %+v, got %+v", tt.expectedMovie, got)
+				}
+			}
+		})
+	}
+}
