@@ -127,19 +127,42 @@ func UpdateMovie(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func DeleteMovie(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var id string
+	if id = params["id"]; !regexp.MustCompile(`^\d+$`).MatchString(id) {
+		log.Printf("Invalid ID format: %v", id)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := movies[id]; !ok {
+		log.Printf("Movie with id %v doesn't exist", id)
+		http.Error(w, "404 not found", http.StatusNotFound)
+		return
+	}
+
+	delete(movies, id)
+
+	if err := json.NewEncoder(w).Encode(movies); err != nil {
+		RespondInternalServerError(w, err)
+	}
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/movies", GetMovies).Methods("GET")
 	r.HandleFunc("/movies/{id}", GetMovie).Methods("GET")
 	r.HandleFunc("/movies/", CreateMovie).Methods("POST")
 	r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT")
-	// r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
-	//
+	r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
 
 	r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
 	r.HandleFunc("/movies/{id}", GetMovie).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovie)))
 	r.HandleFunc("/movies", CreateMovie).Methods("POST").Handler(SetJSONContentType(http.HandlerFunc(CreateMovie)))
 	r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT").Handler(SetJSONContentType(http.HandlerFunc(UpdateMovie)))
+	r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE").Handler(SetJSONContentType(http.HandlerFunc(DeleteMovie)))
+
 	fmt.Println("Starting server on port 8000")
 	if err := http.ListenAndServe(":8000", r); err != nil {
 		log.Fatal(err)
