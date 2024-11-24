@@ -347,3 +347,64 @@ func TestUpdateMovie(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteMovie(t *testing.T) {
+	tests := []struct {
+		name           string
+		movies         map[string]Movie
+		id             string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Valid movie ID",
+			movies:         getDummyMovies(),
+			id:             "1",
+			expectedStatus: http.StatusOK,
+			expectedBody: `{"2":{"id":"2","isbn":"45455","title":"Movie Two",
+								"director":{"first_name":"Jane","last_name":"Doe"}}}`,
+		},
+		{
+			name:           "Invalid ID format",
+			movies:         getDummyMovies(),
+			id:             "abc",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Bad Request\n",
+		},
+		{
+			name:           "Non-existent movie ID",
+			movies:         getDummyMovies(),
+			id:             "99999",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "404 not found\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			movies = tt.movies
+
+			req := httptest.NewRequest(http.MethodDelete, "/delete/{id}", nil)
+			req = mux.SetURLVars(req, map[string]string{"id": tt.id})
+			rec := httptest.NewRecorder()
+
+			handler := SetJSONContentType(http.HandlerFunc(DeleteMovie))
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rec.Code)
+			}
+
+			if rec.Body.String() != tt.expectedBody {
+
+				equal, err := compareJson(rec.Body.String(), tt.expectedBody)
+
+				if err != nil {
+					t.Error(err)
+				}
+				if !equal {
+					t.Errorf("Expected body %+v, got %+v", tt.expectedBody, rec.Body.String())
+				}
+			}
+		})
+	}
+}
