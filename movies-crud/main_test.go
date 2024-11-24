@@ -276,3 +276,74 @@ func TestCreateMovie(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateMovie(t *testing.T) {
+	tests := []struct {
+		name           string
+		params         map[string]string
+		body           string
+		existingMovies map[string]Movie
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Invalid ID format",
+			params:         map[string]string{"id": "invalid"},
+			body:           `{"title":"Updated Movie", "isbn":"12345", "director":{"first_name":"John","last_name":"Doe"}}`,
+			existingMovies: getDummyMovies(),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Bad Request\n",
+		},
+		{
+			name:           "Non-existent movie ID",
+			params:         map[string]string{"id": "9999"},
+			body:           `{"title":"Updated Movie", "isbn":"12345", "director":{"first_name":"John","last_name":"Doe"}}`,
+			existingMovies: getDummyMovies(),
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "404 not found\n",
+		},
+		{
+			name:           "JSON decode error",
+			params:         map[string]string{"id": "1"},
+			body:           `invalid json`,
+			existingMovies: getDummyMovies(),
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "An error occurred while processing your request\n",
+		},
+		{
+			name:           "successful update",
+			params:         map[string]string{"id": "1"},
+			body:           `{"title":"Updated Movie", "isbn":"67890", "director":{"first_name":"Jane","last_name":"Smith"}}`,
+			existingMovies: getDummyMovies(),
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"id":"1","isbn":"67890","title":"Updated Movie","director":{"first_name":"Jane","last_name":"Smith"}}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			movies = tt.existingMovies
+
+			req := httptest.NewRequest(http.MethodPut, "/movies/{id}", strings.NewReader(tt.body))
+			req = mux.SetURLVars(req, tt.params)
+
+			rec := httptest.NewRecorder()
+
+			handler := SetJSONContentType(http.HandlerFunc(UpdateMovie))
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rec.Code)
+			}
+
+			if rec.Body.String() != tt.expectedBody {
+				equal, err := compareJson(rec.Body.String(), tt.expectedBody)
+				if err != nil {
+					t.Error(err)
+				}
+				if !equal {
+					t.Errorf("Expected body %q, got %q", tt.expectedBody, rec.Body.String())
+				}
+			}
+		})
+	}
+}
