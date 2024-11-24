@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -75,17 +77,37 @@ func GetMovie(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func CreateMovie(w http.ResponseWriter, r *http.Request) {
+	var movie Movie
+
+	if err := json.NewDecoder(r.Body).Decode(&movie); err != nil {
+		RespondInternalServerError(w, err)
+		return
+	}
+
+	id := strconv.Itoa(rand.Intn(1000000))
+	movie.Id = id
+	movies[id] = movie
+
+	if err := json.NewEncoder(w).Encode(movie); err != nil {
+		RespondInternalServerError(w, err)
+		return
+	}
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/movies", GetMovies).Methods("GET")
 	r.HandleFunc("/movies/{id}", GetMovie).Methods("GET")
-	// r.HandleFunc("/movies/", CreateMovie).Methods("POST")
+	r.HandleFunc("/movies/", CreateMovie).Methods("POST")
 	// r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT")
 	// r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
 	//
 
 	r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
 	r.HandleFunc("/movies/{id}", GetMovie).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovie)))
+	r.HandleFunc("/movies", CreateMovie).Methods("POST").Handler(SetJSONContentType(http.HandlerFunc(CreateMovie)))
+
 	fmt.Println("Starting server on port 8000")
 	if err := http.ListenAndServe(":8000", r); err != nil {
 		log.Fatal(err)
