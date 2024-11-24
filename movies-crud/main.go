@@ -24,6 +24,11 @@ type Director struct {
 
 var movies = make(map[string]Movie)
 
+func RespondInternalServerError(w http.ResponseWriter, err error) {
+	log.Printf("Internal Server Error: %v", err)
+	http.Error(w, "An error occurred while processing your request", http.StatusInternalServerError)
+}
+
 func SetJSONContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
@@ -42,8 +47,7 @@ func getDummyMovies() map[string]Movie {
 
 func GetMovies(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(movies); err != nil {
-		log.Printf("Error encoding JSON: %v", err)
-		http.Error(w, "An error occurred while processing your request", http.StatusInternalServerError)
+		RespondInternalServerError(w, err)
 		return
 	}
 }
@@ -65,8 +69,7 @@ func GetMovie(w http.ResponseWriter, r *http.Request) {
 
 	prepared_obj := map[string]Movie{id: movie}
 	if err := json.NewEncoder(w).Encode(prepared_obj); err != nil {
-		log.Printf("Error encoding JSON: %v", err)
-		http.Error(w, "An error occurred while processing your request", http.StatusInternalServerError)
+		RespondInternalServerError(w, err)
 		return
 	}
 
