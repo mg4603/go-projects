@@ -13,6 +13,22 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type errorResponseWriter struct {
+	Recorder *httptest.ResponseRecorder
+}
+
+func (e *errorResponseWriter) Header() http.Header {
+	return e.Recorder.Header()
+}
+
+func (e *errorResponseWriter) Write(p []byte) (int, error) {
+	return 0, fmt.Errorf("Forced write error")
+}
+
+func (e *errorResponseWriter) WriteHeader(statusCode int) {
+	e.Recorder.WriteHeader(statusCode)
+}
+
 func compareJson(json1, json2 string) (bool, error) {
 	var obj1, obj2 map[string]Movie
 	if err := json.Unmarshal([]byte(json1), &obj1); err != nil {
@@ -56,7 +72,8 @@ func TestGetMovies(t *testing.T) {
 			req, _ := http.NewRequest("GET", "/movies", nil)
 			rec := httptest.NewRecorder()
 
-			GetMovies(rec, req)
+			handler := SetJSONContentType(http.HandlerFunc(GetMovies))
+			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rec.Code)
