@@ -30,7 +30,7 @@ func (e *errorResponseWriter) WriteHeader(statusCode int) {
 }
 
 func compareJson(json1, json2 string) (bool, error) {
-	var obj1, obj2 map[string]Movie
+	var obj1, obj2 interface{}
 	if err := json.Unmarshal([]byte(json1), &obj1); err != nil {
 		return false, fmt.Errorf("error parsing first JSON: %v\n", err)
 	}
