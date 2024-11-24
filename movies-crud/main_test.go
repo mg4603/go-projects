@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -162,6 +163,38 @@ func TestGetMovie(t *testing.T) {
 				if !ok {
 					t.Errorf("Expected body %q, got%q", tt.expectedBody, rec.Body.String())
 				}
+			}
+
+		})
+	}
+}
+
+func TestRespondInternalServerError(t *testing.T) {
+	tests := []struct {
+		name           string
+		err            error
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Handles internal server error",
+			err:            fmt.Errorf("test error"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "An error occurred while processing your request",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+
+			RespondInternalServerError(rec, tt.err)
+
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("Expected status%v, got %v", tt.expectedStatus, rec.Code)
+			}
+
+			if !strings.Contains(rec.Body.String(), tt.expectedBody) {
+				t.Errorf("Expected body to contain %q, got %q", tt.expectedBody, rec.Body.String())
 			}
 
 		})
