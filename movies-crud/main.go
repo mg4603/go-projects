@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/gorilla/mux"
 )
@@ -47,16 +48,41 @@ func GetMovies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetMovie(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var id string
+	if id = params["id"]; !regexp.MustCompile(`^\d+$`).MatchString(id) {
+		log.Printf("Invalid ID format: %v", id)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	movie, ok := movies[id]
+	if !ok {
+		log.Printf("Movie with id %v does not exist", id)
+		http.Error(w, "404 not found", http.StatusNotFound)
+		return
+	}
+
+	prepared_obj := map[string]Movie{id: movie}
+	if err := json.NewEncoder(w).Encode(prepared_obj); err != nil {
+		log.Printf("Error encoding JSON: %v", err)
+		http.Error(w, "An error occurred while processing your request", http.StatusInternalServerError)
+		return
+	}
+
+}
+
 func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/movies", GetMovies).Methods("GET")
-	// r.HandleFunc("/movies/{id}", GetMovie).Methods("GET")
+	r.HandleFunc("/movies/{id}", GetMovie).Methods("GET")
 	// r.HandleFunc("/movies/", CreateMovie).Methods("POST")
 	// r.HandleFunc("/movies/{id}", UpdateMovie).Methods("PUT")
 	// r.HandleFunc("/movies/{id}", DeleteMovie).Methods("DELETE")
 	//
-	r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
 
+	r.HandleFunc("/movies", GetMovies).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovies)))
+	r.HandleFunc("/movies/{id}", GetMovie).Methods("GET").Handler(SetJSONContentType(http.HandlerFunc(GetMovie)))
 	fmt.Println("Starting server on port 8000")
 	if err := http.ListenAndServe(":8000", r); err != nil {
 		log.Fatal(err)
